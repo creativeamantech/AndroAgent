@@ -1,32 +1,61 @@
 # LocalAgent
 
-A fully functional Android Agent application that can autonomously perform tasks on an Android device using a locally running LLM.
+A fully functional, production-grade Android Agent application that can autonomously perform tasks on an Android device using a locally running LLM.
+
+## Features
+
+- **Local LLM Execution**: Connects to Ollama (default) or other local backends.
+- **Accessibility Service**: Reads screen content and performs gestures (tap, swipe).
+- **Vision-Language Model (VLM)**: Uses LLaVA/MiniCPM-V to analyze screenshots when accessibility tree is insufficient.
+- **Multi-Agent Architecture**: Includes a Planner and Executor agent for complex tasks.
+- **Memory**: Persists task history and learns from past executions.
+- **Privacy**: PII Redaction and Encryption stubs for sensitive data.
+- **Plugin System**: Extensible architecture for custom tools (includes Home Assistant stub).
+- **Model Manager**: Download and manage Ollama models directly from the app.
 
 ## Tech Stack
 
 - **Language**: Kotlin
+- **UI**: Jetpack Compose (Material3)
 - **Architecture**: MVVM + Clean Architecture + Hilt
-- **UI**: Jetpack Compose
-- **LLM**: Ollama Client
+- **Networking**: Retrofit + OkHttp
 - **Database**: Room
-- **Privacy**: Encrypted Storage, PII Redaction
+- **Async**: Coroutines + Flow
 
-## Setup
+## Setup & Usage
 
-1.  Clone the repository.
-2.  Open in Android Studio.
-3.  Ensure you have an Ollama server running locally (default: `http://localhost:11434`) or configure the URL in `OllamaClient.kt`.
-4.  Build and run on an Android Emulator or Device.
+1.  **Prerequisites**:
+    - Android Device (Android 8.0+) or Emulator.
+    - Ollama server running on your local machine or network.
+    - Run `ollama serve` on your machine.
+    - Pull required models:
+      ```bash
+      ollama pull llama3
+      ollama pull llava
+      ```
 
-## Features implemented
+2.  **Configuration**:
+    - Open the app.
+    - Go to **Settings**.
+    - Set the **Ollama Base URL** (e.g., `http://10.0.2.2:11434` for emulator, or your LAN IP for device).
+    - Toggle **Multi-Agent Mode** if desired.
 
-- **Core Agent Logic**: ReAct loop, Tool Registry.
-- **LLM Integration**: Ollama Client implementation.
-- **Memory**: Task history storage with Room.
-- **Privacy**: PII Redaction and Encryption stubs.
-- **UI**: Chat interface and Settings screen.
-- **Accessibility**: Stubbed Accessibility Service integration.
+3.  **Permissions**:
+    - Enable **LocalAgent Accessibility Service** in Android Settings when prompted or manually.
+    - Grant other runtime permissions as requested.
 
-## Note
+4.  **Using the Agent**:
+    - Type a command in the chat (e.g., "Open Settings", "Read my screen", "Plan a trip").
+    - The agent will think, plan (if multi-agent), and execute actions.
+    - Use the **History** icon to view past tasks.
+    - Use **Manage Models** in Settings to pull new models.
 
-This project is scaffolded based on the `android_agent_prompt.md`. It requires a running LLM backend to function fully. The Accessibility Service needs to be enabled manually in Android Settings.
+## Development
+
+- **Tools**: `ToolsModule.kt` registers available tools. Add new `AgentTool` implementations here.
+- **Plugins**: `PluginRegistry.kt` loads plugins. Implement `AgentTool` for your plugin.
+- **LLM**: `OllamaClient.kt` handles communication. Implement `LLMClient` for other backends.
+
+## License
+
+MIT
