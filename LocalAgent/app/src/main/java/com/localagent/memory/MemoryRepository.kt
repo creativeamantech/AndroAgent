@@ -1,17 +1,19 @@
 package com.localagent.memory
 
+import com.localagent.data.dao.TaskRunDao
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MemoryRepository @Inject constructor() {
-    private val memory = mutableListOf<String>()
-
-    fun addMemory(memory: String) {
-        this.memory.add(memory)
+class MemoryRepository @Inject constructor(
+    private val taskRunDao: TaskRunDao
+) {
+    fun getAllTaskRuns(): Flow<List<TaskRun>> {
+        return taskRunDao.getAll()
     }
 
-    fun getMemories(): List<String> {
-        return memory
+    suspend fun saveTaskRun(taskRun: TaskRun) {
+        taskRunDao.insert(taskRun)
     }
 }

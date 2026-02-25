@@ -1,5 +1,6 @@
 package com.localagent.llm
 
+import com.localagent.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.OkHttpClient
@@ -11,15 +12,18 @@ import javax.inject.Inject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
-class OllamaClient @Inject constructor() : LLMClient {
+class OllamaClient @Inject constructor(
+    private val settingsRepository: SettingsRepository
+) : LLMClient {
 
     private val client = OkHttpClient()
-    private val baseUrl = "http://localhost:11434" // Default Ollama URL
+
+    private val baseUrl: String
+        get() = settingsRepository.ollamaBaseUrl
 
     override val backendName: String = "Ollama"
 
     override fun isAvailable(): Boolean {
-        // Simple check to see if we can reach the server
         return try {
             val request = Request.Builder().url("$baseUrl/api/tags").build()
             client.newCall(request).execute().isSuccessful
@@ -30,7 +34,7 @@ class OllamaClient @Inject constructor() : LLMClient {
 
     override suspend fun chat(messages: List<Message>, stream: Boolean): Flow<String> = flow {
         val json = JSONObject()
-        json.put("model", "llama3") // Default model
+        json.put("model", "llama3")
         json.put("messages", messages.map {
             JSONObject().apply {
                 put("role", it.role)
@@ -38,6 +42,8 @@ class OllamaClient @Inject constructor() : LLMClient {
             }
         })
         json.put("stream", stream)
+        // Ensure format is JSON for consistent tool calling
+        json.put("format", "json")
 
         val body = json.toString().toRequestBody("application/json".toMediaType())
         val request = Request.Builder()

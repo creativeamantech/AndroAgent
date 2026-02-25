@@ -15,6 +15,20 @@ class AccessibilityController @Inject constructor() {
         this.service = service
     }
 
+    fun getScreenContent(): String {
+        val root = service?.rootInActiveWindow
+        return if (root != null) {
+            try {
+                val json = ScreenSerializer.serialize(root)
+                json.toString()
+            } finally {
+                root.recycle() // Important: Recycle root node
+            }
+        } else {
+            "No active window found or Accessibility Service not connected."
+        }
+    }
+
     fun tap(x: Float, y: Float) {
         service?.let {
             val path = Path().apply { moveTo(x, y) }
