@@ -7,33 +7,22 @@ import com.localagent.memory.TaskRun
 import com.localagent.tools.ToolRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import org.json.JSONObject
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class AgentEngine @Inject constructor(
     private val llmClient: LLMClient,
     private val toolRegistry: ToolRegistry,
-    private val memoryRepository: MemoryRepository
+    private val memoryRepository: MemoryRepository,
+    private val promptBuilder: PromptBuilder,
+    private val responseParser: ResponseParser
 ) {
     suspend fun run(task: String): Flow<String> = flow {
         emit("Thinking...")
 
         val tools = toolRegistry.listTools()
-        val toolsDescription = tools.joinToString(", ") { "${it.name}: ${it.description}" }
-        val systemPrompt = """
-            You are an Android device automation agent.
-            You must respond ONLY in this JSON format:
-            {
-              "thought": "reasoning...",
-              "action": {
-                "tool": "<tool_name>",
-                "args": { ... }
-              }
-            }
-            Available tools: [$toolsDescription]
-            Use the tool 'done' with args {"result": "summary"} when finished.
-            Always use 'read_screen' first to understand the UI state.
-        """.trimIndent()
+        val systemPrompt = promptBuilder.buildSystemPrompt(tools)
 
         val history = mutableListOf<Message>()
         history.add(Message("system", systemPrompt))
@@ -55,29 +44,26 @@ class AgentEngine @Inject constructor(
                 return@flow
             }
 
-            try {
-                val json = JSONObject(fullResponse)
-                val thought = json.optString("thought")
-                emit("Thought: $thought")
+            val response = responseParser.parse(fullResponse)
 
-                if (json.has("action")) {
-                    val action = json.getJSONObject("action")
-                    val toolName = action.optString("tool")
-                    val args = action.optJSONObject("args") ?: JSONObject()
+            when (response) {
+                is AgentAction -> {
+                    emit("Thought: ${response.thought}")
 
-                    if (toolName == "done") {
-                        val result = args.optString("result")
+                    if (response.tool == "done") {
+                        val result = response.args.optString("result")
                         emit("Done: $result")
-                        saveTask(task, history, "SUCCESS")
+                        outcome = "SUCCESS"
+                        saveTask(task, history, outcome)
                         return@flow
                     }
 
-                    val tool = toolRegistry.getTool(toolName)
+                    val tool = toolRegistry.getTool(response.tool)
                     if (tool != null) {
-                        emit("Executing tool: $toolName")
+                        emit("Executing tool: ${response.tool}")
                         try {
-                            val result = tool.execute(args)
-                            val observation = "Tool '$toolName' output: ${result.output}"
+                            val result = tool.execute(response.args)
+                            val observation = "Tool '${response.tool}' output: ${result.output}"
                             emit("Observation: ${result.output}")
 
                             history.add(Message("assistant", fullResponse))
@@ -89,20 +75,22 @@ class AgentEngine @Inject constructor(
                             history.add(Message("user", errorObs))
                         }
                     } else {
-                        val errorObs = "Tool '$toolName' not found."
+                        val errorObs = "Tool '${response.tool}' not found."
                         emit(errorObs)
                         history.add(Message("assistant", fullResponse))
                         history.add(Message("user", errorObs))
                     }
-                } else {
-                    emit("Response: $fullResponse")
-                    // Assume waiting for more info or just chat
+                }
+                is AgentMessage -> {
+                    emit("Response: ${response.content}")
                     history.add(Message("assistant", fullResponse))
                 }
-            } catch (e: Exception) {
-                emit("Failed to parse JSON response: $fullResponse")
-                // history.add(Message("assistant", fullResponse))
-                // history.add(Message("user", "Invalid JSON format. Please use JSON."))
+                is AgentError -> {
+                    emit("Failed to parse JSON response: ${response.message}")
+                    // Retry or just log?
+                    // history.add(Message("assistant", fullResponse))
+                    // history.add(Message("user", "Invalid JSON. Please use correct format."))
+                }
             }
             steps++
         }

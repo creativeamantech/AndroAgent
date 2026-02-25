@@ -5,6 +5,7 @@ import com.localagent.tools.OpenAppTool
 import com.localagent.tools.ReadScreenTool
 import com.localagent.tools.TapTool
 import com.localagent.tools.SwipeTool
+import com.localagent.tools.VisionReadScreenTool
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -30,4 +31,8 @@ abstract class ToolsModule {
     @Binds
     @IntoSet
     abstract fun bindReadScreenTool(tool: ReadScreenTool): AgentTool
+
+    @Binds
+    @IntoSet
+    abstract fun bindVisionReadScreenTool(tool: VisionReadScreenTool): AgentTool
 }

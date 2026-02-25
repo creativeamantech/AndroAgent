@@ -11,13 +11,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
+    onManageModelsClick: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val ollamaUrl by viewModel.ollamaUrl.collectAsState()
     val isMultiAgentMode by viewModel.isMultiAgentMode.collectAsState()
     var urlInput by remember { mutableStateOf(ollamaUrl) }
 
-    // Sync input with flow if flow updates externally
     LaunchedEffect(ollamaUrl) {
         urlInput = ollamaUrl
     }
@@ -52,6 +52,15 @@ fun SettingsScreen(
                 checked = isMultiAgentMode,
                 onCheckedChange = { viewModel.toggleMultiAgentMode(it) }
             )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = onManageModelsClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Manage Models")
         }
 
         Spacer(modifier = Modifier.weight(1f))

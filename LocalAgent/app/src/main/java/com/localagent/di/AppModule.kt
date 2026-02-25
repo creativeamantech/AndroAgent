@@ -6,6 +6,8 @@ import com.localagent.data.dao.TaskRunDao
 import com.localagent.data.db.AgentDatabase
 import com.localagent.llm.LLMClient
 import com.localagent.llm.OllamaClient
+import com.localagent.llm.VLMClient
+import com.localagent.llm.OllamaVLMClient
 import com.localagent.privacy.EncryptionManager
 import com.localagent.privacy.PIIRedactor
 import com.localagent.plugins.PluginRegistry
@@ -38,6 +40,12 @@ object AppModule {
     @Provides
     @Singleton
     fun provideLLMClient(client: OllamaClient): LLMClient {
+        return client
+    }
+
+    @Provides
+    @Singleton
+    fun provideVLMClient(client: OllamaVLMClient): VLMClient {
         return client
     }
 

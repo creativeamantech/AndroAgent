@@ -2,10 +2,18 @@ package com.localagent.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.graphics.Bitmap
 import android.graphics.Path
-import android.util.Log
+import android.os.Build
+import android.util.Base64
+import android.view.Display
+import androidx.annotation.RequiresApi
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.localagent.accessibility.ScreenSerializer
 
 @Singleton
 class AccessibilityController @Inject constructor() {
@@ -22,10 +30,49 @@ class AccessibilityController @Inject constructor() {
                 val json = ScreenSerializer.serialize(root)
                 json.toString()
             } finally {
-                root.recycle() // Important: Recycle root node
+                root.recycle()
             }
         } else {
-            "No active window found or Accessibility Service not connected."
+            "{}"
+        }
+    }
+
+    fun takeScreenshot(callback: (String?) -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val s = service ?: return callback(null)
+
+            s.takeScreenshot(Display.DEFAULT_DISPLAY, Executors.newSingleThreadExecutor(), object : AccessibilityService.TakeScreenshotCallback {
+                override fun onSuccess(screenshotResult: AccessibilityService.ScreenshotResult) {
+                    val hardwareBuffer = screenshotResult.hardwareBuffer
+                    val colorSpace = screenshotResult.colorSpace
+                    val bitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, colorSpace)
+
+                    if (bitmap != null) {
+                        try {
+                            val softwareBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, false)
+                            val stream = ByteArrayOutputStream()
+                            softwareBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                            val byteArray = stream.toByteArray()
+                            val base64 = Base64.encodeToString(byteArray, Base64.NO_WRAP)
+                            callback(base64)
+                            softwareBitmap.recycle()
+                        } catch (e: Exception) {
+                            callback(null)
+                        } finally {
+                            bitmap.recycle()
+                        }
+                    } else {
+                        callback(null)
+                    }
+                    hardwareBuffer.close()
+                }
+
+                override fun onFailure(errorCode: Int) {
+                    callback(null)
+                }
+            })
+        } else {
+            callback(null) // Not supported below Android 11 (API 30) for accessibility service screenshot
         }
     }
 
