@@ -23,4 +23,29 @@ class SettingsRepository @Inject constructor(
         set(value) {
             prefs.edit().putBoolean("is_multi_agent_mode", value).apply()
         }
+
+    // Privacy Settings
+    var logSmsCall: Boolean
+        get() = prefs.getBoolean("log_sms_call", false)
+        set(value) {
+            prefs.edit().putBoolean("log_sms_call", value).apply()
+        }
+
+    var autoDeleteInterval: Int
+        get() = prefs.getInt("auto_delete_interval", 30) // Days
+        set(value) {
+            prefs.edit().putInt("auto_delete_interval", value).apply()
+        }
+
+    var isStealthMode: Boolean
+        get() = prefs.getBoolean("is_stealth_mode", false)
+        set(value) {
+            prefs.edit().putBoolean("is_stealth_mode", value).apply()
+        }
+
+    var isFirstLaunch: Boolean
+        get() = prefs.getBoolean("is_first_launch", true)
+        set(value) {
+            prefs.edit().putBoolean("is_first_launch", value).apply()
+        }
 }

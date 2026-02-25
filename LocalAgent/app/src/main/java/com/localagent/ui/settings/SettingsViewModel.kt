@@ -27,4 +27,8 @@ class SettingsViewModel @Inject constructor(
         settingsRepository.isMultiAgentMode = enabled
         _isMultiAgentMode.value = enabled
     }
+
+    fun updateFirstLaunch(isFirst: Boolean) {
+        settingsRepository.isFirstLaunch = isFirst
+    }
 }

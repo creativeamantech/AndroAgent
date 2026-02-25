@@ -1,6 +1,8 @@
 package com.localagent.ui.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,6 +14,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun SettingsScreen(
     onBackClick: () -> Unit,
     onManageModelsClick: () -> Unit,
+    onPrivacySettingsClick: () -> Unit,
+    onPluginStoreClick: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val ollamaUrl by viewModel.ollamaUrl.collectAsState()
@@ -22,7 +26,11 @@ fun SettingsScreen(
         urlInput = ollamaUrl
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -54,7 +62,7 @@ fun SettingsScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = onManageModelsClick,
@@ -63,7 +71,25 @@ fun SettingsScreen(
             Text("Manage Models")
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onPluginStoreClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Plugin Store")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onPrivacySettingsClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Privacy Settings")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(onClick = onBackClick) {
             Text("Back")
