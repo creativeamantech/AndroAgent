@@ -4,8 +4,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ToolRegistry @Inject constructor() {
+class ToolRegistry @Inject constructor(
+    private val toolsSet: Set<@JvmSuppressWildcards AgentTool>
+) {
     private val tools = mutableMapOf<String, AgentTool>()
+
+    init {
+        toolsSet.forEach { register(it) }
+    }
 
     fun register(tool: AgentTool) {
         tools[tool.name] = tool

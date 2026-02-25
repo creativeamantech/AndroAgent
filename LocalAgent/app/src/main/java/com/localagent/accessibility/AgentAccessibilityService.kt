@@ -2,9 +2,19 @@ package com.localagent.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class AgentAccessibilityService : AccessibilityService() {
+
+    @Inject
+    lateinit var accessibilityController: AccessibilityController
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        accessibilityController.setService(this)
+    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // Handle events
@@ -14,9 +24,8 @@ class AgentAccessibilityService : AccessibilityService() {
         // Handle interruption
     }
 
-    fun getScreenContent(): String {
-        val root = rootInActiveWindow ?: return ""
-        // Recursive traversal to build JSON tree
-        return "Stubbed Screen Content"
+    override fun onUnbind(intent: android.content.Intent?): Boolean {
+        accessibilityController.setService(null)
+        return super.onUnbind(intent)
     }
 }
