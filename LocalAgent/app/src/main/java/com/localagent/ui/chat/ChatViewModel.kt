@@ -3,7 +3,9 @@ package com.localagent.ui.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.localagent.agent.AgentEngine
+import com.localagent.data.repository.SettingsRepository
 import com.localagent.llm.Message
+import com.localagent.multiagent.AgentOrchestrator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +14,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val agentEngine: AgentEngine
+    private val agentEngine: AgentEngine,
+    private val agentOrchestrator: AgentOrchestrator,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
@@ -20,22 +24,38 @@ class ChatViewModel @Inject constructor(
 
     fun sendMessage(text: String) {
         val userMessage = Message("user", text)
-        _messages.value += userMessage
+        val currentMessages = _messages.value.toMutableList()
+        currentMessages.add(userMessage)
+        _messages.value = currentMessages
 
         viewModelScope.launch {
-            val responseFlow = agentEngine.run(text)
+            val isMultiAgent = settingsRepository.isMultiAgentMode
+
+            val responseFlow = if (isMultiAgent) {
+                agentOrchestrator.run(text)
+            } else {
+                agentEngine.run(text)
+            }
+
+            // Create initial assistant message
             var agentResponse = ""
-            // Add a placeholder message for streaming
-            val agentMessageIndex = _messages.value.size
-            _messages.value += Message("assistant", "")
+            val newMessages = _messages.value.toMutableList()
+            // Placeholder message to be updated
+            newMessages.add(Message("assistant", "..."))
+            _messages.value = newMessages
+            val agentMessageIndex = newMessages.lastIndex
 
             responseFlow.collect { chunk ->
-                agentResponse = chunk // In real streaming, append chunk if implemented that way
-                // Update the last message
-                val currentMessages = _messages.value.toMutableList()
-                if (currentMessages.size > agentMessageIndex) {
-                     currentMessages[agentMessageIndex] = Message("assistant", agentResponse)
-                     _messages.value = currentMessages
+                if (agentResponse.isEmpty()) {
+                    agentResponse = chunk
+                } else {
+                    agentResponse += "\n" + chunk
+                }
+
+                val updatedMessages = _messages.value.toMutableList()
+                if (updatedMessages.size > agentMessageIndex) {
+                    updatedMessages[agentMessageIndex] = Message("assistant", agentResponse)
+                    _messages.value = updatedMessages
                 }
             }
         }

@@ -15,8 +15,16 @@ class SettingsViewModel @Inject constructor(
     private val _ollamaUrl = MutableStateFlow(settingsRepository.ollamaBaseUrl)
     val ollamaUrl = _ollamaUrl.asStateFlow()
 
+    private val _isMultiAgentMode = MutableStateFlow(settingsRepository.isMultiAgentMode)
+    val isMultiAgentMode = _isMultiAgentMode.asStateFlow()
+
     fun updateOllamaUrl(url: String) {
         settingsRepository.ollamaBaseUrl = url
         _ollamaUrl.value = url
+    }
+
+    fun toggleMultiAgentMode(enabled: Boolean) {
+        settingsRepository.isMultiAgentMode = enabled
+        _isMultiAgentMode.value = enabled
     }
 }

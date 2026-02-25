@@ -1,4 +1,4 @@
-package com.localagent.data.repository
+package com.localagent.ui.settings
 
 import android.content.Context
 import android.content.SharedPreferences

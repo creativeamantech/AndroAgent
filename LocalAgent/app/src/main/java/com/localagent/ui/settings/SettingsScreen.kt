@@ -3,6 +3,7 @@ package com.localagent.ui.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -13,9 +14,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val ollamaUrl by viewModel.ollamaUrl.collectAsState()
+    val isMultiAgentMode by viewModel.isMultiAgentMode.collectAsState()
     var urlInput by remember { mutableStateOf(ollamaUrl) }
 
-    // Sync input with flow if flow updates externally (optional but good practice)
+    // Sync input with flow if flow updates externally
     LaunchedEffect(ollamaUrl) {
         urlInput = ollamaUrl
     }
@@ -35,7 +37,21 @@ fun SettingsScreen(
             onClick = { viewModel.updateOllamaUrl(urlInput) },
             modifier = Modifier.padding(top = 8.dp)
         ) {
-            Text("Save")
+            Text("Save URL")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Multi-Agent Mode")
+            Switch(
+                checked = isMultiAgentMode,
+                onCheckedChange = { viewModel.toggleMultiAgentMode(it) }
+            )
         }
 
         Spacer(modifier = Modifier.weight(1f))
