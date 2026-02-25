@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import com.localagent.data.dao.TaskRunDao
 import com.localagent.memory.TaskRun
 
-@Database(entities = [TaskRun::class], version = 1)
+@Database(entities = [TaskRun::class], version = 1, exportSchema = false)
 abstract class AgentDatabase : RoomDatabase() {
     abstract fun taskRunDao(): TaskRunDao
 }
