@@ -8,6 +8,7 @@ import com.localagent.llm.LLMClient
 import com.localagent.llm.OllamaClient
 import com.localagent.privacy.EncryptionManager
 import com.localagent.privacy.PIIRedactor
+import com.localagent.plugins.PluginRegistry
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,5 +51,11 @@ object AppModule {
     @Singleton
     fun providePIIRedactor(): PIIRedactor {
         return PIIRedactor()
+    }
+
+    @Provides
+    @Singleton
+    fun providePluginRegistry(): PluginRegistry {
+        return PluginRegistry()
     }
 }
