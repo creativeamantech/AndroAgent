@@ -14,7 +14,8 @@ import java.io.InputStreamReader
 class OllamaClient @Inject constructor() : LLMClient {
 
     private val client = OkHttpClient()
-    private val baseUrl = "http://localhost:11434" // Default Ollama URL
+    // Use 10.0.2.2 for emulator to access host machine's localhost
+    private val baseUrl = "http://10.0.2.2:11434"
 
     override val backendName: String = "Ollama"
 
@@ -38,6 +39,7 @@ class OllamaClient @Inject constructor() : LLMClient {
             }
         })
         json.put("stream", stream)
+        // json.put("format", "json") // Optional: force JSON mode if supported
 
         val body = json.toString().toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
@@ -52,13 +54,17 @@ class OllamaClient @Inject constructor() : LLMClient {
                 val reader = BufferedReader(InputStreamReader(source))
                 var line: String? = reader.readLine()
                 while (line != null) {
-                    val jsonResponse = JSONObject(line)
-                    if (jsonResponse.has("message")) {
-                        val messageContent = jsonResponse.getJSONObject("message").optString("content", "")
-                        emit(messageContent)
-                    }
-                    if (jsonResponse.optBoolean("done", false)) {
-                        break
+                    try {
+                        val jsonResponse = JSONObject(line)
+                        if (jsonResponse.has("message")) {
+                            val messageContent = jsonResponse.getJSONObject("message").optString("content", "")
+                            emit(messageContent)
+                        }
+                        if (jsonResponse.optBoolean("done", false)) {
+                            break
+                        }
+                    } catch (e: Exception) {
+                        // ignore parse errors for partial lines
                     }
                     line = reader.readLine()
                 }

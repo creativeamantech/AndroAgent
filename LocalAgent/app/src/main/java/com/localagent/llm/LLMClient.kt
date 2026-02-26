@@ -7,8 +7,3 @@ interface LLMClient {
     fun isAvailable(): Boolean
     val backendName: String
 }
-
-data class Message(
-    val role: String,
-    val content: String
-)
