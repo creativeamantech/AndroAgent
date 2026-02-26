@@ -1,9 +1,12 @@
 package com.localagent.agent
 
+import com.localagent.data.repository.SettingsRepository
 import com.localagent.llm.LLMClient
 import com.localagent.llm.Message
 import com.localagent.memory.MemoryRepository
 import com.localagent.memory.TaskRun
+import com.localagent.privacy.EncryptionManager
+import com.localagent.privacy.PIIRedactor
 import com.localagent.tools.ToolRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -16,7 +19,10 @@ class AgentEngine @Inject constructor(
     private val toolRegistry: ToolRegistry,
     private val memoryRepository: MemoryRepository,
     private val promptBuilder: PromptBuilder,
-    private val responseParser: ResponseParser
+    private val responseParser: ResponseParser,
+    private val settingsRepository: SettingsRepository,
+    private val piiRedactor: PIIRedactor,
+    private val encryptionManager: EncryptionManager
 ) {
     suspend fun run(task: String): Flow<String> = flow {
         emit("Thinking...")
@@ -87,9 +93,6 @@ class AgentEngine @Inject constructor(
                 }
                 is AgentError -> {
                     emit("Failed to parse JSON response: ${response.message}")
-                    // Retry or just log?
-                    // history.add(Message("assistant", fullResponse))
-                    // history.add(Message("user", "Invalid JSON. Please use correct format."))
                 }
             }
             steps++
@@ -99,10 +102,34 @@ class AgentEngine @Inject constructor(
     }
 
     private suspend fun saveTask(task: String, history: List<Message>, outcome: String) {
+        if (settingsRepository.isStealthMode) {
+            // Stealth Mode enabled: Do not save anything
+            return
+        }
+
         val stepsJson = history.joinToString("\n") { "${it.role}: ${it.content}" }
+
+        // Redact PII
+        val redactedTask = piiRedactor.redact(task)
+        val redactedSteps = piiRedactor.redact(stepsJson)
+
+        // Encrypt steps (Assuming we want to encrypt the details)
+        // Note: Room database itself is encrypted with SQLCipher, so additional field-level encryption
+        // might be double encryption, but per requirements we can do it if needed.
+        // The prompt says "Encrypt the Room database with SQLCipher... Encrypt all stored screenshots...".
+        // It doesn't explicitly say encrypt text fields manually, but it's good practice for "Encrypted Task Logs".
+        // However, searching via "MemorySearchEngine" (keyword search) won't work on encrypted blobs easily
+        // unless we decrypt in memory or use FTS on decrypted data.
+        // Given SQLCipher is used, the whole DB is encrypted at rest.
+        // So I'll stick to redaction here to allow search, relying on SQLCipher for encryption.
+        // Wait, prompt says: "Store the AES key wrapped in an RSA key...". This implies application-level encryption logic.
+        // But for Memory Search to work, we need searchable text.
+        // Let's assume SQLCipher handles the "Encrypted Task Logs" requirement for the DB.
+        // The EncryptionManager is likely for screenshots or exported backups.
+
         val taskRun = TaskRun(
-            task = task,
-            steps = stepsJson,
+            task = redactedTask,
+            steps = redactedSteps,
             outcome = outcome,
             timestamp = System.currentTimeMillis()
         )
