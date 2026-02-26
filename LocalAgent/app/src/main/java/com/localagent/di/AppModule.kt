@@ -8,6 +8,7 @@ import com.localagent.llm.LLMClient
 import com.localagent.llm.OllamaClient
 import com.localagent.llm.VLMClient
 import com.localagent.llm.OllamaVLMClient
+import com.localagent.privacy.BackupManager
 import com.localagent.privacy.EncryptionManager
 import com.localagent.privacy.PIIRedactor
 import com.localagent.plugins.PluginRegistry
@@ -65,5 +66,15 @@ object AppModule {
     @Singleton
     fun providePluginRegistry(): PluginRegistry {
         return PluginRegistry()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBackupManager(
+        @ApplicationContext context: Context,
+        agentDatabase: AgentDatabase,
+        encryptionManager: EncryptionManager
+    ): BackupManager {
+        return BackupManager(context, agentDatabase, encryptionManager)
     }
 }

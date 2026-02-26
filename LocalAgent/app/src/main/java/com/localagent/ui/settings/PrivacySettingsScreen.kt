@@ -1,5 +1,7 @@
 package com.localagent.ui.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +18,15 @@ fun PrivacySettingsScreen(
     val logSmsCall by viewModel.logSmsCall.collectAsState()
     val autoDeleteInterval by viewModel.autoDeleteInterval.collectAsState()
     val isStealthMode by viewModel.isStealthMode.collectAsState()
+    val backupStatus by viewModel.backupStatus.collectAsState()
+
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        uri?.let { viewModel.exportBackup(it) }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { viewModel.importBackup(it) }
+    }
 
     Column(modifier = Modifier.padding(16.dp)) {
         Text("Privacy Settings", style = MaterialTheme.typography.headlineMedium)
@@ -50,8 +61,24 @@ fun PrivacySettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(onClick = { /* TODO: Implement Export */ }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { exportLauncher.launch("localagent_backup.lagent") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Export Encrypted Backup")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { importLauncher.launch(arrayOf("application/octet-stream", "*/*")) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Import Backup")
+        }
+
+        if (backupStatus.isNotEmpty()) {
+            Text(backupStatus, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
         }
 
         Spacer(modifier = Modifier.weight(1f))
