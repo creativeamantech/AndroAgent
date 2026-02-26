@@ -125,4 +125,29 @@ class AgentAccessibilityService : AccessibilityService() {
         }
         return false
     }
+
+    fun takeScreenshot(callback: (android.graphics.Bitmap?) -> Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            takeScreenshot(
+                android.view.Display.DEFAULT_DISPLAY,
+                mainExecutor,
+                object : AccessibilityService.TakeScreenshotCallback {
+                    override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
+                        val bitmap = android.graphics.Bitmap.wrapHardwareBuffer(
+                            screenshot.hardwareBuffer,
+                            screenshot.colorSpace
+                        )
+                        callback(bitmap?.copy(android.graphics.Bitmap.Config.ARGB_8888, false))
+                        screenshot.hardwareBuffer.close()
+                    }
+
+                    override fun onFailure(errorCode: Int) {
+                        callback(null)
+                    }
+                }
+            )
+        } else {
+            callback(null) // Not supported on < API 30
+        }
+    }
 }

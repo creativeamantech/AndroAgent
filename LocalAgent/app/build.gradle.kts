@@ -77,6 +77,10 @@ dependencies {
 
     // SQLCipher
     implementation(libs.sqlcipher)
+    implementation("androidx.security:security-crypto:1.0.0")
+
+    // Google AI (Gemini)
+    implementation("com.google.ai.client.generativeai:generativeai:0.4.0")
 
     // Coil
     implementation(libs.coil.compose)
