@@ -15,8 +15,8 @@ class AgentEngine @Inject constructor(
     private val promptBuilder: PromptBuilder,
     private val responseParser: ResponseParser
 ) {
-    suspend fun run(task: String): Flow<String> = flow {
-        emit("Starting task: $task")
+    suspend fun run(task: String): Flow<AgentState> = flow {
+        emit(AgentState.Thinking)
 
         val history = mutableListOf<AgentStep>()
         val maxSteps = 15
@@ -24,7 +24,6 @@ class AgentEngine @Inject constructor(
 
         while (currentStep < maxSteps) {
             currentStep++
-            emit("Step $currentStep: Reading screen...")
 
             // 1. Get current screen content
             val screenContent = AgentAccessibilityService.instance?.getScreenContent() ?: "{ \"error\": \"Accessibility Service not connected\" }"
@@ -38,8 +37,6 @@ class AgentEngine @Inject constructor(
                 Message("user", userPrompt)
             )
 
-            emit("Step $currentStep: Thinking...")
-
             // 3. Query LLM
             var llmResponse = ""
             try {
@@ -47,31 +44,28 @@ class AgentEngine @Inject constructor(
                     llmResponse += chunk
                 }
             } catch (e: Exception) {
-                emit("Error during LLM chat: ${e.message}")
+                emit(AgentState.Error("Error during LLM chat: ${e.message}"))
                 break
             }
 
             // 4. Parse response
             val action = responseParser.parse(llmResponse)
             if (action == null) {
-                emit("Failed to parse LLM response.")
                 history.add(AgentStep("Failed to parse response", "None", "Error: Invalid JSON response"))
                 continue
             }
 
-            emit("Thought: ${action.thought}")
-            emit("Action: ${action.tool} ${action.args}")
+            emit(AgentState.Acting(action.tool))
 
             // 5. Execute tool
             val tool = toolRegistry.getTool(action.tool)
             if (tool == null) {
-                emit("Error: Tool '${action.tool}' not found.")
                 history.add(AgentStep(action.thought, action.tool, "Error: Tool '${action.tool}' not found"))
                 continue
             }
 
             if (action.tool == "done") {
-                emit("Task completed: ${action.args.optString("result")}")
+                emit(AgentState.Done(action.args.optString("result")))
                 break
             }
 
@@ -81,14 +75,13 @@ class AgentEngine @Inject constructor(
                 ToolResult("Error executing tool: ${e.message}")
             }
 
-            emit("Observation: ${result.output}")
-
             // 6. Update history
             history.add(AgentStep(action.thought, "${action.tool}(${action.args})", result.output))
+            emit(AgentState.Thinking)
         }
 
         if (currentStep >= maxSteps) {
-            emit("Task failed: Max steps reached.")
+            emit(AgentState.Error("Task failed: Max steps reached."))
         }
     }
 }

@@ -37,6 +37,12 @@ class ResponseParser @Inject constructor() {
                 val args = action.optJSONObject("args") ?: JSONObject()
                 val thought = json.optString("thought", "")
                 return AgentAction(thought, toolName, args)
+            } else if (json.has("tool")) {
+                // Handle flat format if LLM messes up nesting
+                val toolName = json.getString("tool")
+                val args = json.optJSONObject("args") ?: JSONObject()
+                val thought = json.optString("thought", "")
+                return AgentAction(thought, toolName, args)
             }
         } catch (e: Exception) {
             // Failed to parse

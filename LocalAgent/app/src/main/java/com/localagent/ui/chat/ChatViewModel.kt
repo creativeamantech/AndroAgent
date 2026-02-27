@@ -3,6 +3,7 @@ package com.localagent.ui.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.localagent.agent.AgentEngine
+import com.localagent.agent.AgentState
 import com.localagent.llm.Message
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,24 +19,28 @@ class ChatViewModel @Inject constructor(
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages = _messages.asStateFlow()
 
+    private val _state = MutableStateFlow<AgentState>(AgentState.Idle)
+    val state = _state.asStateFlow()
+
     fun sendMessage(text: String) {
         val userMessage = Message("user", text)
         _messages.value += userMessage
 
         viewModelScope.launch {
-            val responseFlow = agentEngine.run(text)
-            var agentResponse = ""
-            // Add a placeholder message for streaming
-            val agentMessageIndex = _messages.value.size
-            _messages.value += Message("assistant", "")
-
-            responseFlow.collect { chunk ->
-                agentResponse = chunk // In real streaming, append chunk if implemented that way
-                // Update the last message
-                val currentMessages = _messages.value.toMutableList()
-                if (currentMessages.size > agentMessageIndex) {
-                     currentMessages[agentMessageIndex] = Message("assistant", agentResponse)
-                     _messages.value = currentMessages
+            agentEngine.run(text).collect { agentState ->
+                _state.value = agentState
+                when (agentState) {
+                    is AgentState.Done -> {
+                        val assistantMessage = Message("assistant", agentState.result)
+                        _messages.value += assistantMessage
+                    }
+                    is AgentState.Error -> {
+                        val errorMessage = Message("system", "Error: ${agentState.message}")
+                        _messages.value += errorMessage
+                    }
+                    else -> {
+                        // Handle other states (Thinking, Acting) if needed in UI
+                    }
                 }
             }
         }
